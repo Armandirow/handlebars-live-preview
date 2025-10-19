@@ -1,0 +1,114 @@
+{
+    "name": "handlebars-live-preview",
+    "displayName": "Handlebars Live Preview",
+    "description": "Live preview for Handlebars templates with configurable directories and custom helpers (JavaScript/TypeScript)",
+    "version": "1.0.0",
+    "publisher": "armandirow",
+    "engines": {
+        "vscode": "^1.74.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onCommand:handlebars-preview.openPreview",
+        "onCommand:handlebars-preview.refreshPreview"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "handlebars-preview.openPreview",
+                "title": "Open Handlebars Preview",
+                "category": "Handlebars Live Preview"
+            },
+            {
+                "command": "handlebars-preview.refreshPreview",
+                "title": "Refresh Preview",
+                "category": "Handlebars Live Preview"
+            },
+            {
+                "command": "handlebars-preview.reloadHelpers",
+                "title": "Reload Custom Helpers",
+                "category": "Handlebars Live Preview"
+            },
+            {
+                "command": "handlebars-preview.clearData",
+                "title": "Clear Template Data",
+                "category": "Handlebars Live Preview"
+            }
+        ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "when": "resourceExtname == .hbs",
+                    "command": "handlebars-preview.openPreview",
+                    "group": "navigation"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "Handlebars Live Preview",
+            "properties": {
+                "handlebarsPreview.templateDirectories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "templates",
+                        "src/templates",
+                        "views"
+                    ],
+                    "description": "Array of directories to search for Handlebars templates (.hbs files)"
+                },
+                "handlebarsPreview.partialsDirectories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Array of directories to search for Handlebars partials. If empty, uses template directories."
+                },
+                "handlebarsPreview.customHelpersFile": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to JavaScript/TypeScript file exporting custom Handlebars helpers (optional)"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/lodash": "^4.17.20",
+        "@types/node": "^20.3.1",
+        "@types/vscode": "^1.74.0",
+        "ts-node": "^10.9.1",
+        "tsx": "^4.6.2",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "handlebars": "^4.7.8",
+        "lodash": "^4.17.21"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/handlebars-preview/handlebars-live-preview.git"
+    },
+    "keywords": [
+        "handlebars",
+        "template",
+        "preview",
+        "live",
+        "vscode",
+        "extension",
+        "typescript",
+        "javascript",
+        "helpers"
+    ],
+    "license": "MIT"
+}

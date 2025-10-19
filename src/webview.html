@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Template Preview</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--vscode-font-family);
+        background: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+        padding: 10px;
+      }
+
+      .header {
+        margin-bottom: 10px;
+      }
+
+      .header h2 {
+        color: var(--vscode-editor-foreground);
+        margin-bottom: 8px;
+        font-size: 16px;
+      }
+
+      .controls {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        align-items: flex-end;
+        flex-wrap: nowrap;
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+        flex: 1;
+      }
+
+      .control-group:first-child {
+        flex: 0 0 200px;
+      }
+
+      .control-group:last-child {
+        flex: 2;
+      }
+
+      .control-group label {
+        font-weight: 600;
+        font-size: 10px;
+        color: var(--vscode-foreground);
+      }
+
+      select,
+      textarea {
+        padding: 4px 6px;
+        border: 1px solid var(--vscode-input-border);
+        border-radius: 3px;
+        background: var(--vscode-input-background);
+        color: var(--vscode-input-foreground);
+        font-size: 10px;
+      }
+
+      select {
+        width: 100%;
+      }
+
+      textarea {
+        min-height: 50px;
+        width: 100%;
+        font-family: var(--vscode-editor-font-family);
+        font-size: 9px;
+        resize: vertical;
+      }
+
+      button {
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+        border: none;
+        padding: 6px 12px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 600;
+        height: fit-content;
+        flex: 0 0 auto;
+      }
+
+      button:hover {
+        background: var(--vscode-button-hoverBackground);
+      }
+
+      .preview-container {
+        margin-top: 10px;
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 3px;
+        overflow: hidden;
+        height: calc(100vh - 200px);
+        min-height: 500px;
+      }
+
+      .preview-frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      .error {
+        background: var(--vscode-inputValidation-errorBackground);
+        color: var(--vscode-inputValidation-errorForeground);
+        padding: 8px;
+        border-radius: 3px;
+        margin: 10px 0;
+        font-size: 11px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: var(--vscode-descriptionForeground);
+        font-size: 12px;
+      }
+
+      .template-info {
+        background: var(--vscode-textBlockQuote-background);
+        padding: 4px;
+        border-radius: 3px;
+        font-size: 9px;
+        max-height: 60px;
+        overflow-y: auto;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .template-info h4 {
+        margin-bottom: 2px;
+        color: var(--vscode-foreground);
+        font-size: 10px;
+      }
+
+      .template-info pre {
+        background: var(--vscode-textCodeBlock-background);
+        padding: 2px;
+        border-radius: 3px;
+        font-size: 8px;
+        overflow-x: auto;
+        margin: 0;
+      }
+
+      .mobile-toggle {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-left: auto;
+      }
+
+      .mobile-toggle button {
+        background: var(--vscode-button-secondaryBackground);
+        color: var(--vscode-button-secondaryForeground);
+        border: 1px solid var(--vscode-button-border);
+        padding: 4px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 9px;
+        font-weight: 500;
+        height: fit-content;
+      }
+
+      .mobile-toggle button:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+      }
+
+      .mobile-toggle button.active {
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+      }
+
+      .preview-container.mobile-view {
+        max-width: 375px;
+        margin: 10px auto 0;
+        border: 2px solid var(--vscode-panel-border);
+        border-radius: 20px;
+        overflow: hidden;
+        height: 667px;
+        position: relative;
+      }
+
+      .preview-container.mobile-view::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background: var(--vscode-panel-border);
+        z-index: 1;
+      }
+
+      .preview-container.mobile-view .preview-frame {
+        margin-top: 20px;
+        height: calc(100% - 20px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h2>🔧 Handlebars Template Preview</h2>
+      <div class="controls">
+        <div class="control-group">
+          <label for="templateSelect">Template:</label>
+          <select id="templateSelect">
+            <option value="">Select a template...</option>
+          </select>
+        </div>
+        <div class="template-info">
+          <h4>Template Info</h4>
+          <div id="templateInfo">
+            <p>Select a template to see its directory...</p>
+          </div>
+        </div>
+        <div class="control-group">
+          <label for="dataInput">Template Data (JSON):</label>
+          <textarea id="dataInput" placeholder="Enter JSON data..."></textarea>
+        </div>
+        <button onclick="renderTemplate()">Render</button>
+        <button
+          onclick="clearData()"
+          style="
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+          "
+        >
+          Clear Data
+        </button>
+        <div class="mobile-toggle">
+          <button
+            id="desktopView"
+            onclick="toggleView('desktop')"
+            class="active"
+          >
+            🖥️ Desktop
+          </button>
+          <button id="mobileView" onclick="toggleView('mobile')">
+            📱 Mobile
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="errorContainer"></div>
+
+    <div class="preview-container">
+      <iframe
+        id="previewFrame"
+        class="preview-frame"
+        src="about:blank"
+      ></iframe>
+    </div>
+
+    <script>
+      const vscode = acquireVsCodeApi();
+      let templates = [];
+      let currentTemplate = null;
+
+      // Load templates on page load
+      function loadTemplates() {
+        vscode.postMessage({ command: "getTemplates" });
+      }
+
+      // Handle messages from extension
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        switch (message.command) {
+          case "templates":
+            templates = message.templates;
+            updateTemplateSelect();
+            break;
+          case "templateData":
+            if (message.data) {
+              document.getElementById("dataInput").value = JSON.stringify(
+                message.data,
+                null,
+                2
+              );
+            }
+            break;
+          case "templateDataCleared":
+            document.getElementById("dataInput").value = "";
+            break;
+          case "rendered":
+            showPreview(message.html);
+            break;
+          case "error":
+            showError(message.error);
+            break;
+          case "autoRerender":
+            // Auto-render the current template if one is selected
+            setTimeout(() => {
+              const currentTemplate =
+                document.getElementById("templateSelect").value;
+              if (currentTemplate) {
+                console.log("Auto-rendering template:", currentTemplate);
+                renderTemplate();
+              }
+            }, 100); // Small delay to ensure DOM is updated
+            break;
+        }
+      });
+
+      function updateTemplateSelect() {
+        const select = document.getElementById("templateSelect");
+        const currentValue = select.value; // Preserve current selection
+
+        select.innerHTML = '<option value="">Select a template...</option>';
+
+        templates.forEach((template) => {
+          const option = document.createElement("option");
+          option.value = template.name;
+          option.textContent = `${template.name} (${template.directory})`;
+          if (template.name === currentValue) {
+            option.selected = true; // Restore selection
+          }
+          select.appendChild(option);
+        });
+
+        // Only add event listener if not already added
+        if (!select.hasAttribute("data-listener-added")) {
+          select.addEventListener("change", loadTemplateData);
+          select.setAttribute("data-listener-added", "true");
+        }
+      }
+
+      // Load data for selected template
+      function loadTemplateData() {
+        const templateName = document.getElementById("templateSelect").value;
+        if (!templateName) return;
+
+        currentTemplate = templates.find((t) => t.name === templateName);
+        updateTemplateInfo(templateName);
+
+        // Request saved data for this template
+        vscode.postMessage({
+          command: "getTemplateData",
+          templateName: templateName,
+        });
+      }
+
+      // Update template information
+      function updateTemplateInfo(templateName) {
+        const infoDiv = document.getElementById("templateInfo");
+        if (currentTemplate) {
+          infoDiv.innerHTML = `
+                <h4>${templateName}</h4>
+                <p><strong>Directory:</strong> ${currentTemplate.directory}</p>
+                <p><strong>Path:</strong> ${currentTemplate.fullPath}</p>
+            `;
+        } else {
+          infoDiv.innerHTML = `<p>Select a template...</p>`;
+        }
+      }
+
+      // Render template
+      function renderTemplate() {
+        const templateName = document.getElementById("templateSelect").value;
+        const dataInput = document.getElementById("dataInput").value;
+
+        if (!templateName) {
+          showError("Please select a template");
+          return;
+        }
+
+        let data = {};
+        if (dataInput.trim()) {
+          try {
+            data = JSON.parse(dataInput);
+          } catch (error) {
+            showError("Invalid JSON data: " + error.message);
+            return;
+          }
+        }
+
+        vscode.postMessage({
+          command: "renderTemplate",
+          templateName,
+          data,
+        });
+      }
+
+      // Clear data for current template
+      function clearData() {
+        const templateName = document.getElementById("templateSelect").value;
+        if (!templateName) {
+          showError("Please select a template first");
+          return;
+        }
+
+        vscode.postMessage({
+          command: "clearTemplateData",
+          templateName: templateName,
+        });
+      }
+
+      // Show preview
+      function showPreview(html) {
+        const iframe = document.getElementById("previewFrame");
+        iframe.srcdoc = html;
+        clearError();
+      }
+
+      // Show error message
+      function showError(message) {
+        const errorContainer = document.getElementById("errorContainer");
+        errorContainer.innerHTML = `<div class="error">${message}</div>`;
+      }
+
+      // Clear error message
+      function clearError() {
+        const errorContainer = document.getElementById("errorContainer");
+        errorContainer.innerHTML = "";
+      }
+
+      // Toggle between desktop and mobile view
+      function toggleView(view) {
+        const previewContainer = document.querySelector(".preview-container");
+        const desktopBtn = document.getElementById("desktopView");
+        const mobileBtn = document.getElementById("mobileView");
+
+        if (view === "mobile") {
+          previewContainer.classList.add("mobile-view");
+          desktopBtn.classList.remove("active");
+          mobileBtn.classList.add("active");
+        } else {
+          previewContainer.classList.remove("mobile-view");
+          desktopBtn.classList.add("active");
+          mobileBtn.classList.remove("active");
+        }
+      }
+
+      // Load templates when page loads
+      loadTemplates();
+    </script>
+  </body>
+</html>

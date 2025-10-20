@@ -2,7 +2,7 @@
     "name": "handlebars-live-preview",
     "displayName": "Handlebars Live Preview",
     "description": "Live preview for Handlebars templates with configurable directories and custom helpers (JavaScript/TypeScript)",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "publisher": "Armandirow",
     "engines": {
         "vscode": "^1.74.0"

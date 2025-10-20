@@ -1,13 +1,19 @@
 import * as vscode from "vscode";
-import { readFileSync, readdirSync, statSync, existsSync } from "fs";
-import { join } from "path";
+import {
+  readFileSync,
+  readdirSync,
+  statSync,
+  existsSync,
+  writeFileSync,
+  unlinkSync,
+} from "fs";
+import { join, dirname, basename } from "path";
 import handlebars from "handlebars";
 
 export class HandlebarsPreviewProvider {
   public _panel?: vscode.WebviewPanel;
   private _workspaceRoot: string;
   private _watchers: vscode.FileSystemWatcher[] = [];
-  private _templateDataCache: Map<string, any> = new Map();
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -15,6 +21,7 @@ export class HandlebarsPreviewProvider {
   ) {
     this._workspaceRoot = workspaceRoot;
     this.registerHelpers();
+    this.loadAllTemplateData();
   }
 
   public createOrShow() {
@@ -251,23 +258,78 @@ export class HandlebarsPreviewProvider {
     this.autoRerender();
   }
 
-  private getTemplateDataKey(templateName: string): string {
-    return `${this._workspaceRoot}:${templateName}`;
+  private getTemplateJsonPath(templateName: string): string {
+    const templates = this.getAvailableTemplates();
+    const template = templates.find((t) => t.name === templateName);
+
+    if (!template) {
+      throw new Error(`Template not found: ${templateName}`);
+    }
+
+    // Convert template.hbs path to template.json path
+    const templateDir = dirname(template.fullPath);
+    const templateBaseName = basename(template.fullPath, ".hbs");
+    return join(templateDir, `${templateBaseName}.json`);
+  }
+
+  private loadTemplateDataFromFile(templateName: string): any {
+    try {
+      const jsonPath = this.getTemplateJsonPath(templateName);
+      if (existsSync(jsonPath)) {
+        const data = readFileSync(jsonPath, "utf8");
+        return JSON.parse(data);
+      }
+    } catch (error) {
+      console.error(`Error loading template data for ${templateName}:`, error);
+    }
+    return {};
+  }
+
+  private saveTemplateDataToFile(templateName: string, data: any): void {
+    try {
+      const jsonPath = this.getTemplateJsonPath(templateName);
+      const jsonData = JSON.stringify(data, null, 2);
+      writeFileSync(jsonPath, jsonData, "utf8");
+    } catch (error) {
+      console.error(`Error saving template data for ${templateName}:`, error);
+    }
   }
 
   private saveTemplateData(templateName: string, data: any) {
-    const key = this.getTemplateDataKey(templateName);
-    this._templateDataCache.set(key, data);
+    this.saveTemplateDataToFile(templateName, data);
   }
 
   private getTemplateData(templateName: string): any {
-    const key = this.getTemplateDataKey(templateName);
-    return this._templateDataCache.get(key) || {};
+    return this.loadTemplateDataFromFile(templateName);
   }
 
   private clearTemplateData(templateName: string) {
-    const key = this.getTemplateDataKey(templateName);
-    this._templateDataCache.delete(key);
+    try {
+      const jsonPath = this.getTemplateJsonPath(templateName);
+      if (existsSync(jsonPath)) {
+        unlinkSync(jsonPath);
+      }
+    } catch (error) {
+      console.error(`Error clearing template data for ${templateName}:`, error);
+    }
+  }
+
+  private loadAllTemplateData() {
+    try {
+      const templates = this.getAvailableTemplates();
+      templates.forEach((template) => {
+        // This will load the data if the .json file exists
+        this.loadTemplateDataFromFile(template.name);
+      });
+      console.log(
+        `[handlebars-preview] Loaded template data for ${templates.length} templates`
+      );
+    } catch (error) {
+      console.error(
+        "[handlebars-preview] Error loading template data on startup:",
+        error
+      );
+    }
   }
 
   private registerPartialsRecursively(dir: string) {

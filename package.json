@@ -3,12 +3,12 @@
     "displayName": "Handlebars Live Preview",
     "description": "Live preview for Handlebars templates with configurable directories and custom helpers (JavaScript/TypeScript)",
     "version": "1.0.0",
-    "publisher": "armandirow",
+    "publisher": "Armandirow",
     "engines": {
         "vscode": "^1.74.0"
     },
     "categories": [
-        "Other"
+        "Handlerbars"
     ],
     "activationEvents": [
         "onCommand:handlebars-preview.openPreview",
